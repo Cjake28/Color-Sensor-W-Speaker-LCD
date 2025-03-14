@@ -72,14 +72,40 @@ void loop() {
 
         // Update display with color information
         display.clearDisplay();
-        HSL hsl = getHSLFromSensor(tcs);
-        display.setCursor(0, 0);
-        display.println(getColorNameAndHsl(hsl));
-        display.display();
+        HSV hsv = getHSVFromSensor(tcs);
+        Serial.println(hsv.h);
+        Serial.println(hsv.s);
+        Serial.println(hsv.v);
+        Serial.println(getColorNameAndHsv(hsv));
+        // display.setCursor(0, 0);
+        // display.println(getColorNameAndHsv(hsv));
+        // display.display();
 
         // Play audio based on color
-        String colorName = getColorName(hsl);
+        String colorName = getColorName(hsv);
+        display.setCursor(0, 0);
+        display.println(colorName);
+        display.clearDisplay();
+        
+        // Set bigger text size (adjust as needed)
+        int textSize = (colorName.length() > 6) ? 2 : 3;
+        display.setTextSize(textSize);  // You can increase to 3, but check if it fits
+        display.setTextColor(WHITE);
+
+        // Get text width & height
+        int16_t x1, y1;
+        uint16_t w, h;
+        display.getTextBounds(colorName, 0, 0, &x1, &y1, &w, &h);
+
+        // Center text
+        int x = (SCREEN_WIDTH - w) / 2;
+        int y = (SCREEN_HEIGHT - h) / 2;
+
+        display.setCursor(x, y);
+        display.println(colorName);
+        display.display();
         String audioFilePath = "/" + colorName + ".wav";
+
         if (LittleFS.exists(audioFilePath)) {
             playAudio(audioFilePath.c_str());
         } else {
@@ -93,16 +119,13 @@ void loop() {
         // Turn off sensor and LED after use
         tcs.setInterrupt(true); // Re-enable interrupt
         lastlcdShowed = currentTime;
-
-        // tcs.disable(); // Power down the sensor
     }
 
-    if (currentTime - lastlcdShowed >= 3500){
+    if (currentTime - lastlcdShowed >= 3500) {
         display.clearDisplay();
         display.display();
     }
 
-    // Handle ongoing playback
     if (wav && wav->isRunning()) {
         if (!wav->loop()) {
             wav->stop();
@@ -110,7 +133,7 @@ void loop() {
         }
     }
 
-    if (currentTime - lastButtonPressed >= 10000) { // No button press for 10 seconds
+    if (currentTime - lastButtonPressed >= 10000) {
         Serial.println("Entering Light Sleep...");
         delay(10);
         esp_light_sleep_start(); // CPU will pause here
